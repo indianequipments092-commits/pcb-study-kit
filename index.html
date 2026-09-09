@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCB Study Kit</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f1f5f9;
+ color:#0f172a
+}
+
+header{
+ padding:22px;
+ background:linear-gradient(135deg,#111827,#2563eb);
+ color:white
+}
+
+header h1{
+ margin:0;
+ font-size:25px
+}
+
+header p{
+ margin:6px 0 0;
+ opacity:.85
+}
+
+main{
+ max-width:900px;
+ margin:auto;
+ padding:18px
+}
+
+.controls{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+ margin-bottom:15px
+}
+
+input,select,button{
+ font:inherit
+}
+
+input,select{
+ width:100%;
+ padding:12px;
+ border:1px solid #cbd5e1;
+ border-radius:12px;
+ background:white
+}
+
+.card,
+.folder,
+.video-card,
+.doc-card,
+.mcq-card{
+ background:white;
+ border:1px solid #e2e8f0;
+ border-radius:16px;
+ margin:10px 0;
+ box-shadow:0 5px 18px #00000008
+}
+
+.card{
+ padding:16px
+}
+
+.chapter-row{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px
+}
+
+.chapter-name{
+ font-weight:800;
+ font-size:18px
+}
+
+.chapter-meta{
+ font-size:12px;
+ color:#64748b;
+ margin-top:5px
+}
+
+button{
+ border:0;
+ border-radius:10px;
+ padding:10px 14px;
+ cursor:pointer;
+ font-weight:700
+}
+
+.open-btn,
+.primary{
+ background:#2563eb;
+ color:white
+}
+
+.back{
+ background:#e2e8f0;
+ color:#0f172a;
+ margin-bottom:12px
+}
+
+.hidden{
+ display:none!important
+}
+
+.folder{
+ padding:18px;
+ cursor:pointer
+}
+
+.folder strong{
+ font-size:18px
+}
+
+.folder small{
+ display:block;
+ color:#64748b;
+ margin-top:5px
+}
+
+.video-thumb{
+ position:relative;
+ aspect-ratio:16/9;
+ background:#0f172a;
+ overflow:hidden;
+ cursor:pointer
+}
+
+.video-thumb img{
+ width:100%;
+ height:100%;
+ object-fit:cover
+}
+
+.play-overlay{
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ width:60px;
+ height:60px;
+ border-radius:50%;
+ background:white;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:25px
+}
+
+.video-head{
+ padding:14px
+}
+
+.video-name{
+ font-size:17px;
+ font-weight:800
+}
+
+.video-url{
+ font-size:11px;
+ color:#64748b;
+ margin-top:5px;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis
+}
+
+.play-here{
+ width:100%;
+ margin-top:12px;
+ background:#111827;
+ color:white
+}
+
+.inline-player{
+ display:none;
+ background:#020617
+}
+
+.inline-player.active{
+ display:block
+}
+
+.inline-player iframe,
+.inline-player video{
+ display:block;
+ width:100%;
+ aspect-ratio:16/9;
+ border:0
+}
+
+.player-note{
+ padding:12px;
+ background:#f8fafc;
+ color:#475569;
+ font-size:13px
+}
+
+.telegram-player{
+ text-align:center;
+ padding:30px;
+ background:#f8fafc
+}
+
+.doc-card,
+.mcq-card{
+ padding:16px
+}
+
+.admin-fab{
+ position:fixed;
+ right:18px;
+ bottom:18px;
+ width:58px;
+ height:58px;
+ border-radius:50%;
+ background:#111827;
+ color:white;
+ font-size:23px;
+ z-index:1000
+}
+
+.modal{
+ position:fixed;
+ inset:0;
+ background:#0008;
+ display:none;
+ align-items:flex-end;
+ justify-content:center;
+ z-index:2000;
+ padding:10px
+}
+
+.modal.show{
+ display:flex
+}
+
+.sheet{
+ background:white;
+ width:min(760px,100%);
+ max-height:94vh;
+ overflow:auto;
+ border-radius:22px;
+ padding:20px
+}
+
+.admin-video{
+ display:flex;
+ justify-content:space-between;
+ gap:10px;
+ padding:10px;
+ border:1px solid #e2e8f0;
+ border-radius:10px;
+ margin-top:8px
+}
+
+.admin-video small{
+ display:block;
+ color:#64748b;
+ word-break:break-all;
+ margin-top:3px
+}
+
+.danger{
+ background:#fee2e2;
+ color:#b91c1c
+}
+
+.empty{
+ text-align:center;
+ color:#64748b;
+ padding:30px
+}
+
+@media(max-width:600px){
+ .controls{
+  grid-template-columns:1fr
+ }
+
+ .chapter-row{
+  align-items:flex-start;
+  flex-direction:column
+ }
+
+ .open-btn{
+  width:100%
+ }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>📚 PCB Study Kit</h1>
+<p>Physics • Chemistry • Biology</p>
+</header>
+
+<main>
+<section id="homeView">
+
+<div class="controls">
+
+<select id="standard"></select>
+
+<select id="subject"></select>
+
+</div>
+
+<input
+ id="search"
+ placeholder="🔎 Search chapter..."
+>
+
+<div id="chapterList"></div>
+
+</section>
+
+
+<section id="chapterView" class="hidden">
+
+<button class="back" onclick="goHome()">
+← Back
+</button>
+
+<div class="card">
+
+<h2 id="chapterCrumb"></h2>
+
+<p id="videoCount"></p>
+
+<p id="dppCount"></p>
+
+<p id="mcqCount"></p>
+
+<p id="pyqCount"></p>
+
+</div>
+
+
+<div class="folder" onclick="openFolder('video')">
+
+<strong>🎥 Videos</strong>
+
+<small id="videoCount2">
+Watch videos inside this chapter
+</small>
+
+</div>
+
+
+<div class="folder" onclick="openFolder('dpp')">
+
+<strong>📝 DPP</strong>
+
+<small>
+Daily Practice Problems
+</small>
+
+</div>
+
+
+<div class="folder" onclick="openFolder('mcq')">
+
+<strong>❓ MCQs</strong>
+
+<small>
+Practice multiple choice questions
+</small>
+
+</div>
+
+
+<div class="folder" onclick="openFolder('pyq')">
+
+<strong>📖 PYQs</strong>
+
+<small>
+Previous year questions
+</small>
+
+</div>
+
+</section>
+
+
+<section id="folderView" class="hidden">
+
+<button class="back" onclick="goChapter()">
+← Back to Chapter
+</button>
+
+<div class="card">
+
+<h2 id="resourceTitle"></h2>
+
+<p id="resourceCount"></p>
+
+</div>
+
+<div id="resourceList"></div>
+
+</section>
+
+</main>
+
+
+<button
+ class="admin-fab"
+ onclick="openAdmin()"
+>
+⚙️
+</button>
+
+
+<div id="adminModal" class="modal">
+
+<div class="sheet">
+
+<div style="display:flex;justify-content:space-between;align-items:center">
+
+<h2>⚙️ Admin Panel</h2>
+
+<button onclick="closeAdmin()">✕</button>
+
+</div>
+
+
+<select id="aStd"></select>
+
+<br><br>
+
+<select id="aSub"></select>
+
+<br><br>
+
+<select id="aChapter"></select>
+
+<hr>
+
+<h3>🎥 Add Video</h3>
+
+<input
+ id="videoName"
+ placeholder="Video name / title"
+>
+
+<br><br>
+
+<input
+ id="videoUrl"
+ placeholder="YouTube / MP4 / Telegram URL"
+>
+
+<br><br>
+
+<button
+ class="primary"
+ onclick="addVideo()"
+>
+➕ Add Video
+</button>
+
+<div id="adminVideos"></div>
+
+<hr>
+<h3>📝 Add DPP / 📖 PYQ</h3>
+
+<input
+ id="docName"
+ placeholder="Document name"
+>
+
+<br><br>
+
+<input
+ id="docUrl"
+ placeholder="Document URL"
+>
+
+<br><br>
+
+<button
+ class="primary"
+ onclick="addDoc('dpp')"
+>
+➕ Add DPP
+</button>
+
+<button
+ class="primary"
+ onclick="addDoc('pyq')"
+>
+➕ Add PYQ
+</button>
+
+<div id="adminDocs"></div>
+
+<hr>
+
+<h3>➕ Add Chapter</h3>
+
+<input
+ id="newChapter"
+ placeholder="New chapter name"
+>
+
+<br><br>
+
+<button
+ class="primary"
+ onclick="addChapter()"
+>
+Add Chapter
+</button>
+
+</div>
+</div>
+
+
+<script>
+
+const BASE_DATA={
+
+"ધોરણ 11":{
+
+"ભૌતિકશાસ્ત્ર":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9",
+"પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12",
+"પ્રકરણ 13","પ્રકરણ 14"
+],
+
+"રસાયણશાસ્ત્ર":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9",
+"પ્રકરણ 10"
+],
+
+"જીવવિજ્ઞાન":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9",
+"પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12",
+"પ્રકરણ 13"
+]
+
+},
+
+"ધોરણ 12":{
+
+"ભૌતિકશાસ્ત્ર":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9",
+"પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12",
+"પ્રકરણ 13","પ્રકરણ 14"
+],
+
+"રસાયણશાસ્ત્ર":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9"
+],
+
+"જીવવિજ્ઞાન":[
+"પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3",
+"પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6",
+"પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9",
+"પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12",
+"પ્રકરણ 13","પ્રકરણ 14","પ્રકરણ 15",
+"પ્રકરણ 16","પ્રકરણ 17","પ્રકરણ 18",
+"પ્રકરણ 19"
+]
+
+}
+
+};
+
+
+const STORE="pcb_study_kit_advanced_v3";
+
+let saved;
+
+try{
+
+saved=JSON.parse(
+localStorage.getItem(STORE)||"null"
+);
+
+}catch(e){
+
+saved=null;
+
+}
+
+if(!saved){
+
+saved={
+ data:BASE_DATA,
+ resources:{}
+};
+
+localStorage.setItem(
+ STORE,
+ JSON.stringify(saved)
+);
+
+}
+
+const DATA=saved.data||BASE_DATA;
+
+const resources=saved.resources||{};
+
+let current={
+ std:"",
+ sub:"",
+ ch:"",
+ folder:""
+};
+
+const $=id=>
+document.getElementById(id);
+
+function key(s,u,c){
+
+return `${s}|${u}|${c}`;
+
+}
+
+function persist(){
+
+localStorage.setItem(
+ STORE,
+ JSON.stringify({
+  data:DATA,
+  resources:resources
+ })
+);
+
+}
+
+function res(s,u,c){
+
+const k=key(s,u,c);
+
+if(!resources[k])
+
+resources[k]={
+ videos:[],
+ dpp:[],
+ pyq:[],
+ mcqs:[]
+};
+
+return resources[k];
+
+}
+
+function esc(v){
+
+return String(v??"").replace(
+ /[&<>'"]/g,
+ c=>({
+
+ "&":"&amp;",
+ "<":"&lt;",
+ ">":"&gt;",
+ "'":"&#39;",
+ '"':"&quot;"
+
+ }[c])
+);
+
+}
+
+function validUrl(v){
+
+try{
+
+const u=new URL(
+ String(v).trim()
+);
+
+return u.protocol==="http:"||
+       u.protocol==="https:";
+
+}catch(e){
+
+return false;
+
+}
+
+}
+function youtubeId(url){
+
+try{
+
+const u=new URL(url);
+
+const h=u.hostname
+.replace(/^www\./,"")
+.toLowerCase();
+
+
+if(h==="youtu.be")
+
+return u.pathname
+.split("/")
+.filter(Boolean)[0]||"";
+
+
+if(
+ h==="youtube.com"||
+ h.endsWith(".youtube.com")||
+ h==="youtube-nocookie.com"||
+ h.endsWith(".youtube-nocookie.com")
+){
+
+const v=u.searchParams.get("v");
+
+if(v)return v;
+
+const p=u.pathname
+.split("/")
+.filter(Boolean);
+
+const i=p.findIndex(
+ x=>[
+  "embed",
+  "shorts",
+  "live",
+  "v"
+ ].includes(x)
+);
+
+if(i>=0)
+
+return p[i+1]||"";
+
+}
+
+}catch(e){}
+
+return "";
+
+}
+
+
+function telegramUrl(url){
+
+try{
+
+const h=new URL(url)
+.hostname
+.replace(/^www\./,"")
+.toLowerCase();
+
+return h==="t.me"||
+       h==="telegram.me"||
+       h==="telegram.dog";
+
+}catch(e){
+
+return false;
+
+}
+
+}
+
+
+function directVideo(url){
+
+try{
+
+return /\.(mp4|webm|ogg|m4v)(\?.*)?$/i
+.test(
+ new URL(url).href
+);
+
+}catch(e){
+
+return false;
+
+}
+
+}
+
+
+function youtubeEmbed(url){
+
+const id=youtubeId(url);
+
+if(!id)return "";
+
+const q=new URLSearchParams({
+
+autoplay:"0",
+
+playsinline:"1",
+
+rel:"0",
+
+modestbranding:"1",
+
+enablejsapi:"1"
+
+});
+
+if(
+ location.origin &&
+ location.origin!=="null"
+)
+
+q.set(
+ "origin",
+ location.origin
+);
+
+return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${q}`;
+
+}
+
+
+function init(){
+
+fillStandards();
+
+$("standard").onchange=
+fillSubjects;
+
+$("subject").onchange=
+renderChapters;
+
+$("search").oninput=
+renderChapters;
+
+fillAdmin();
+
+renderChapters();
+
+}
+
+
+function fillStandards(){
+
+$("standard").innerHTML="";
+
+Object.keys(DATA).forEach(
+ x=>
+ $("standard").add(
+  new Option(x,x)
+ )
+);
+
+fillSubjects();
+
+}
+
+
+function fillSubjects(){
+
+const s=$("standard").value;
+
+$("subject").innerHTML="";
+
+Object.keys(
+ DATA[s]||{}
+).forEach(
+ x=>
+ $("subject").add(
+  new Option(x,x)
+ )
+);
+
+renderChapters();
+
+}
+
+
+function renderChapters(){
+
+const s=$("standard").value;
+
+const u=$("subject").value;
+
+const q=$("search")
+.value
+.trim()
+.toLowerCase();
+
+const arr=
+(DATA[s]||{})[u]||[];
+
+const list=$("chapterList");
+
+list.innerHTML="";
+
+arr
+.filter(
+ x=>x
+ .toLowerCase()
+ .includes(q)
+)
+.forEach(ch=>{
+
+const r=res(s,u,ch);
+
+const row=
+document.createElement("div");
+
+row.className=
+"card chapter-row";
+
+row.innerHTML=`
+
+<div>
+
+<div class="chapter-name">
+${esc(ch)}
+</div>
+
+<div class="chapter-meta">
+
+🎥 ${r.videos.length} videos ·
+
+📝 ${r.dpp.length} DPP ·
+
+❓ ${r.mcqs.length} MCQs ·
+
+📖 ${r.pyq.length} PYQs
+
+</div>
+
+</div>
+
+<button class="open-btn">
+Open Chapter →
+</button>
+
+`;
+
+row.querySelector("button")
+.onclick=()=>
+openChapter(s,u,ch);
+
+list.appendChild(row);
+
+});
+
+if(!list.children.length)
+
+list.innerHTML=
+'<div class="card empty">No chapter found.</div>';
+
+}
+
+
+function openChapter(s,u,ch){
+
+current={
+ std:s,
+ sub:u,
+ ch:ch,
+ folder:""
+};
+
+$("homeView")
+.classList.add("hidden");
+
+$("folderView")
+.classList.add("hidden");
+
+$("chapterView")
+.classList.remove("hidden");
+
+$("chapterCrumb")
+.textContent=
+`${u} • ${ch}`;
+
+const r=res(s,u,ch);
+
+$("videoCount")
+.textContent=
+`${r.videos.length} videos`;
+
+$("dppCount")
+.textContent=
+`${r.dpp.length} DPP`;
+
+$("mcqCount")
+.textContent=
+`${r.mcqs.length} MCQs`;
+
+$("pyqCount")
+.textContent=
+`${r.pyq.length} PYQs`;
+
+scrollTo(0,0);
+
+}
+function goHome(){
+
+$("chapterView")
+.classList.add("hidden");
+
+$("folderView")
+.classList.add("hidden");
+
+$("homeView")
+.classList.remove("hidden");
+
+renderChapters();
+
+scrollTo(0,0);
+
+}
+
+
+function goChapter(){
+
+$("folderView")
+.classList.add("hidden");
+
+$("chapterView")
+.classList.remove("hidden");
+
+scrollTo(0,0);
+
+}
+
+
+function openFolder(folder){
+
+current.folder=folder;
+
+$("chapterView")
+.classList.add("hidden");
+
+$("folderView")
+.classList.remove("hidden");
+
+const r=res(
+ current.std,
+ current.sub,
+ current.ch
+);
+
+const names={
+
+video:"🎥 Videos",
+
+dpp:"📝 DPP",
+
+mcq:"❓ MCQs",
+
+pyq:"📖 PYQs"
+
+};
+
+$("resourceTitle")
+.textContent=
+names[folder];
+
+const arr=
+
+folder==="video"
+?r.videos:
+
+folder==="dpp"
+?r.dpp:
+
+folder==="pyq"
+?r.pyq:
+
+r.mcqs;
+
+$("resourceCount")
+.textContent=
+`${arr.length} item${arr.length===1?"":"s"}`;
+
+renderFolder(
+ arr,
+ folder
+);
+
+scrollTo(0,0);
+
+}
+
+
+function renderFolder(arr,folder){
+
+const list=$("resourceList");
+
+list.innerHTML="";
+
+
+if(!arr.length){
+
+list.innerHTML=
+'<div class="card empty">This folder is empty. Add resources from Admin.</div>';
+
+return;
+
+}
+
+
+if(folder==="video"){
+
+arr.forEach((v,i)=>{
+
+const card=
+document.createElement("article");
+
+card.className=
+"video-card";
+
+const id=
+youtubeId(v.url);
+
+const thumb=id?
+
+`https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`
+
+:"";
+
+card.innerHTML=`
+
+<div class="video-thumb">
+
+${thumb?
+`<img src="${thumb}" alt="">`
+:""}
+
+<span class="play-overlay">
+▶
+</span>
+
+</div>
+
+
+<div class="video-head">
+
+<div class="video-name">
+${esc(v.name)}
+</div>
+
+<div class="video-url">
+${esc(v.url)}
+</div>
+
+<button class="play-here">
+▶ Play video here
+</button>
+
+</div>
+
+
+<div
+ class="inline-player"
+ id="player-${i}">
+</div>
+
+`;
+
+card.querySelector(
+ ".play-here"
+).onclick=()=>
+playInline(i,v);
+
+card.querySelector(
+ ".video-thumb"
+).onclick=()=>
+playInline(i,v);
+
+list.appendChild(card);
+
+});
+
+return;
+
+}
+
+
+if(
+ folder==="dpp"||
+ folder==="pyq"
+){
+
+arr.forEach(x=>{
+
+const card=
+document.createElement("article");
+
+card.className=
+"doc-card";
+
+card.innerHTML=`
+
+<b>
+${esc(x.name)}
+</b>
+
+<br><br>
+
+<button class="primary">
+📄 Open Document
+</button>
+
+`;
+
+card.querySelector("button")
+.onclick=()=>{
+
+if(validUrl(x.url))
+
+window.open(
+ x.url,
+ "_blank",
+ "noopener,noreferrer"
+);
+
+else
+
+alert("Invalid URL");
+
+};
+
+list.appendChild(card);
+
+});
+
+return;
+
+}
+
+
+arr.forEach((x,i)=>{
+
+const card=
+document.createElement("article");
+
+card.className=
+"mcq-card";
+
+const options=
+x.options||[];
+
+card.innerHTML=`
+
+<b>
+${i+1}. ${esc(x.q)}
+</b>
+
+<div style="margin-top:10px">
+
+${options.map(
+ (o,j)=>`
+
+<label
+ style="display:block;padding:7px">
+
+<input
+ type="radio"
+ name="mcq-${i}"
+ value="${j}"
+>
+
+${esc(o)}
+
+</label>
+
+`).join("")}
+
+</div>
+
+
+<button class="primary">
+Check Answer
+</button>
+
+<span
+ id="answer-${i}"
+ style="margin-left:8px">
+</span>
+
+`;
+
+card.querySelector("button")
+.onclick=()=>{
+
+const selected=
+document.querySelector(
+ `input[name="mcq-${i}"]:checked`
+);
+
+$("answer-"+i).textContent=
+
+!selected
+
+?"Select an option."
+
+:Number(selected.value)===
+ Number(x.answer)
+
+?"✅ Correct"
+
+:"❌ Incorrect";
+
+};
+
+list.appendChild(card);
+
+});
+
+}
+function playInline(i,v){
+
+document
+.querySelectorAll(".inline-player")
+.forEach(p=>{
+
+p.classList.remove("active");
+
+p.innerHTML="";
+
+});
+
+
+const player=
+$("player-"+i);
+
+const url=
+String(v.url||"").trim();
+
+
+if(!validUrl(url)){
+
+player.innerHTML=
+'<div class="player-note">Invalid video URL.</div>';
+
+player.classList.add("active");
+
+return;
+
+}
+
+
+const id=
+youtubeId(url);
+
+
+if(id){
+
+player.innerHTML=`
+
+<iframe
+
+src="${youtubeEmbed(url)}"
+
+title="${esc(v.name)}"
+
+referrerpolicy=
+"origin-when-cross-origin"
+
+allow=
+"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+
+allowfullscreen>
+
+</iframe>
+
+<div class="player-note">
+${esc(v.name)}
+</div>
+
+`;
+
+player.classList.add("active");
+
+player.scrollIntoView({
+ behavior:"smooth",
+ block:"nearest"
+});
+
+return;
+
+}
+
+
+if(directVideo(url)){
+
+player.innerHTML=`
+
+<video
+ controls
+ playsinline
+ preload="metadata">
+
+<source
+ src="${esc(url)}">
+
+Your browser does not support video playback.
+
+</video>
+
+<div class="player-note">
+${esc(v.name)}
+</div>
+
+`;
+
+player.classList.add("active");
+
+player.scrollIntoView({
+ behavior:"smooth",
+ block:"nearest"
+});
+
+return;
+
+}
+
+
+if(telegramUrl(url)){
+
+player.innerHTML=`
+
+<div class="telegram-player">
+
+<div style="font-size:40px">
+✈️
+</div>
+
+<h3>
+Telegram Video
+</h3>
+
+<p>
+
+This is a Telegram post/channel link.
+
+A normal t.me link is not a direct video file,
+so HTML5 video cannot directly stream it.
+
+</p>
+
+<button class="primary">
+Open Telegram
+</button>
+
+</div>
+
+`;
+
+player.querySelector("button")
+.onclick=()=>{
+
+window.open(
+ url,
+ "_blank",
+ "noopener,noreferrer"
+);
+
+};
+
+player.classList.add("active");
+
+player.scrollIntoView({
+ behavior:"smooth",
+ block:"nearest"
+});
+
+return;
+
+}
+
+
+player.innerHTML=
+'<div class="player-note">Unsupported video URL.</div>';
+
+player.classList.add("active");
+
+}
+
+
+function fillAdmin(){
+
+const s=$("aStd");
+
+const u=$("aSub");
+
+const c=$("aChapter");
+
+s.innerHTML="";
+
+Object.keys(DATA).forEach(
+ x=>
+ s.add(
+  new Option(x,x)
+ )
+);
+
+
+function subjects(){
+
+u.innerHTML="";
+
+Object.keys(
+ DATA[s.value]||{}
+).forEach(
+ x=>
+ u.add(
+  new Option(x,x)
+ )
+);
+
+chapters();
+
+}
+
+
+function chapters(){
+
+c.innerHTML="";
+
+(DATA[s.value]||{})
+[u.value]?.forEach(
+ x=>
+ c.add(
+  new Option(x,x)
+ )
+);
+
+renderAdminLists();
+
+}
+
+
+s.onchange=subjects;
+
+u.onchange=chapters;
+
+c.onchange=
+renderAdminLists;
+
+subjects();
+
+}
+
+
+function renderAdminLists(){
+
+const s=$("aStd").value;
+
+const u=$("aSub").value;
+
+const c=$("aChapter").value;
+
+if(!c)return;
+
+const r=
+res(s,u,c);
+
+
+$("adminVideos").innerHTML=
+
+r.videos.length?
+
+r.videos.map(
+ (v,i)=>`
+
+<div class="admin-video">
+
+<div>
+
+<b>
+${esc(v.name)}
+</b>
+
+<small>
+${esc(v.url)}
+</small>
+
+</div>
+
+<button
+ class="danger"
+ onclick="deleteVideo(${i})">
+
+Delete
+
+</button>
+
+</div>
+
+`
+).join("")
+
+:
+
+"<p>No videos yet.</p>";
+$("adminDocs").innerHTML=
+
+[
+
+["dpp","📝 DPP",r.dpp],
+
+["pyq","📖 PYQ",r.pyq]
+
+].map(
+ ([type,title,a])=>`
+
+<div style="margin-top:15px">
+
+<b>
+${title}
+</b>
+
+${a.length?
+
+a.map(
+ (x,i)=>`
+
+<div class="admin-video">
+
+<div>
+
+<b>
+${esc(x.name)}
+</b>
+
+<small>
+${esc(x.url)}
+</small>
+
+</div>
+
+<button
+ class="danger"
+ onclick="deleteDoc('${type}',${i})">
+
+Delete
+
+</button>
+
+</div>
+
+`
+).join("")
+
+:
+
+"<p>None.</p>"}
+
+</div>
+
+`
+).join("");
+
+}
+
+
+function addVideo(){
+
+const s=
+$("aStd").value;
+
+const u=
+$("aSub").value;
+
+const c=
+$("aChapter").value;
+
+const name=
+$("videoName").value.trim();
+
+const url=
+$("videoUrl").value.trim();
+
+
+if(
+ !c||
+ !name||
+ !validUrl(url)
+){
+
+alert(
+ "Chapter, video name and valid URL are required."
+);
+
+return;
+
+}
+
+
+if(
+ !youtubeId(url)&&
+ !directVideo(url)&&
+ !telegramUrl(url)
+){
+
+alert(
+ "Use YouTube, direct MP4/WebM, or Telegram URL."
+);
+
+return;
+
+}
+
+
+res(s,u,c)
+.videos
+.push({
+
+name:name,
+
+url:url
+
+});
+
+
+persist();
+
+
+$("videoName").value="";
+
+$("videoUrl").value="";
+
+
+renderAdminLists();
+
+
+if(
+ current.ch===c&&
+ current.folder==="video"
+)
+
+openFolder("video");
+
+
+renderChapters();
+
+
+alert(
+ "Video added successfully ✅"
+);
+
+}
+
+
+function deleteVideo(i){
+
+const r=res(
+
+$("aStd").value,
+
+$("aSub").value,
+
+$("aChapter").value
+
+);
+
+
+if(
+ !confirm(
+  "Delete this video?"
+ )
+)
+
+return;
+
+
+r.videos.splice(i,1);
+
+persist();
+
+renderAdminLists();
+
+renderChapters();
+
+
+if(
+ current.folder==="video"
+)
+
+openFolder("video");
+
+}
+
+
+function addDoc(type){
+
+const s=
+$("aStd").value;
+
+const u=
+$("aSub").value;
+
+const c=
+$("aChapter").value;
+
+const name=
+$("docName").value.trim();
+
+const url=
+$("docUrl").value.trim();
+
+
+if(
+ !c||
+ !name||
+ !validUrl(url)
+){
+
+alert(
+ "Document name and valid URL are required."
+);
+
+return;
+
+}
+
+
+res(s,u,c)[type]
+.push({
+
+name:name,
+
+url:url
+
+});
+
+
+persist();
+
+
+$("docName").value="";
+
+$("docUrl").value="";
+
+
+renderAdminLists();
+
+renderChapters();
+
+
+if(
+ current.ch===c&&
+ current.folder===type
+)
+
+openFolder(type);
+
+
+alert(
+ "Added successfully ✅"
+);
+
+}
+
+
+function deleteDoc(type,i){
+
+const r=res(
+
+$("aStd").value,
+
+$("aSub").value,
+
+$("aChapter").value
+
+);
+
+
+if(
+ !confirm(
+  "Delete this document?"
+ )
+)
+
+return;
+
+
+r[type].splice(i,1);
+
+persist();
+
+renderAdminLists();
+
+renderChapters();
+
+
+if(
+ current.folder===type
+)
+
+openFolder(type);
+
+}
+function addChapter(){
+
+const s=
+$("aStd").value;
+
+const u=
+$("aSub").value;
+
+const name=
+$("newChapter").value.trim();
+
+
+if(!name){
+
+alert(
+ "Enter chapter name."
+);
+
+return;
+
+}
+
+
+if(
+ DATA[s][u].includes(name)
+){
+
+alert(
+ "Chapter already exists."
+);
+
+return;
+
+}
+
+
+DATA[s][u].push(name);
+
+persist();
+
+
+$("newChapter").value="";
+
+
+fillAdmin();
+
+renderChapters();
+
+
+alert(
+ "Chapter added ✅"
+);
+
+}
+
+
+function openAdmin(){
+
+$("adminModal")
+.classList.add("show");
+
+fillAdmin();
+
+}
+
+
+function closeAdmin(){
+
+$("adminModal")
+.classList.remove("show");
+
+}
+
+
+$("adminModal")
+.addEventListener(
+ "click",
+ e=>{
+
+  if(
+   e.target===
+   $("adminModal")
+  )
+
+  closeAdmin();
+
+ }
+);
+
+
+document.addEventListener(
+ "keydown",
+ e=>{
+
+  if(e.key==="Escape")
+
+  closeAdmin();
+
+ }
+);
+
+
+init();
+
+</script>
+
+</body>
+</html>
