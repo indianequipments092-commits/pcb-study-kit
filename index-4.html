@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCB Study Kit</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#0f172a}
+header{padding:22px;background:linear-gradient(135deg,#111827,#2563eb);color:white}
+header h1{margin:0;font-size:25px} header p{margin:6px 0 0;opacity:.85}
+main{max-width:900px;margin:auto;padding:18px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+input,select,button{font:inherit}
+input,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:white}
+.card,.folder,.video-card,.doc-card,.mcq-card{background:white;border:1px solid #e2e8f0;border-radius:16px;margin:10px 0;box-shadow:0 5px 18px #00000008}
+.card{padding:16px}.chapter-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chapter-name{font-weight:800;font-size:18px}.chapter-meta{font-size:12px;color:#64748b;margin-top:5px}
+button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+.open-btn,.primary{background:#2563eb;color:white}.back{background:#e2e8f0;color:#0f172a;margin-bottom:12px}
+.hidden{display:none!important}.folder{padding:18px;cursor:pointer}.folder strong{font-size:18px}
+.folder small{display:block;color:#64748b;margin-top:5px}
+.video-thumb{position:relative;aspect-ratio:16/9;background:#0f172a;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.video-thumb img{width:100%;height:100%;object-fit:cover}.video-thumb iframe,.video-thumb video{display:block;width:100%;height:100%;border:0;aspect-ratio:16/9}.video-thumb .player-note{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;background:#0f172a;color:#fff}
+.play-overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:25px}
+.video-head{padding:14px}.video-name{font-size:17px;font-weight:800}
+.video-url{font-size:11px;color:#64748b;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.play-here{width:100%;margin-top:12px;background:#111827;color:white}
+.inline-player{display:none;background:#020617}.inline-player.active{display:block}
+.inline-player iframe,.inline-player video{display:block;width:100%;aspect-ratio:16/9;border:0}
+.player-note{padding:12px;background:#f8fafc;color:#475569;font-size:13px}
+.telegram-player{text-align:center;padding:20px;background:#f8fafc}.telegram-embed{width:100%;min-height:100px;overflow:hidden}
+.doc-card,.mcq-card{padding:16px}.admin-fab{position:fixed;right:18px;bottom:18px;width:58px;height:58px;border-radius:50%;background:#111827;color:white;font-size:23px;z-index:1000;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}.admin-fab.dragging{cursor:grabbing}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:2000;padding:10px}
+.modal.show{display:flex}.sheet{background:white;width:min(760px,100%);max-height:94vh;overflow:auto;border-radius:22px;padding:20px}
+.admin-video{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px}
+.admin-video small{display:block;color:#64748b;word-break:break-all;margin-top:3px}
+.danger{background:#fee2e2;color:#b91c1c}.empty{text-align:center;color:#64748b;padding:30px}
+@media(max-width:600px){.controls{grid-template-columns:1fr}.chapter-row{align-items:flex-start;flex-direction:column}.open-btn{width:100%}}
+</style>
+</head>
+<body>
+<header><h1>📚 PCB Study Kit</h1><p>Physics • Chemistry • Biology</p></header>
+<main>
+<section id="homeView">
+<div class="controls"><select id="standard"></select><select id="subject"></select></div>
+<input id="search" placeholder="🔎 Search chapter..."><div id="chapterList"></div>
+</section>
+<section id="chapterView" class="hidden">
+<button class="back" onclick="goHome()">← Back</button>
+<div class="card"><h2 id="chapterCrumb"></h2><p id="videoCount"></p><p id="dppCount"></p><p id="mcqCount"></p><p id="pyqCount"></p></div>
+<div class="folder" onclick="openFolder('video')"><strong>🎥 Videos</strong><small id="videoCount2">Watch videos inside this chapter</small></div>
+<div class="folder" onclick="openFolder('dpp')"><strong>📝 DPP</strong><small>Daily Practice Problems</small></div>
+<div class="folder" onclick="openFolder('mcq')"><strong>❓ MCQs</strong><small>Practice multiple choice questions</small></div>
+<div class="folder" onclick="openFolder('pyq')"><strong>📖 PYQs</strong><small>Previous year questions</small></div>
+</section>
+<section id="folderView" class="hidden">
+<button class="back" onclick="goChapter()">← Back to Chapter</button>
+<div class="card"><h2 id="resourceTitle"></h2><p id="resourceCount"></p></div><div id="resourceList"></div>
+</section>
+</main>
+<button id="admin-fab" class="admin-fab">⚙️</button>
+<div id="adminModal" class="modal"><div class="sheet">
+<div style="display:flex;justify-content:space-between;align-items:center"><h2>⚙️ Admin Panel</h2><button onclick="closeAdmin()">✕</button></div>
+<select id="aStd"></select><br><br><select id="aSub"></select><br><br><select id="aChapter"></select><hr>
+<h3>🎥 Add Video</h3><input id="videoName" placeholder="Video name / title"><br><br>
+<input id="videoUrl" placeholder="YouTube / MP4 / Telegram URL"><br><br>
+<button class="primary" onclick="addVideo()">➕ Add Video</button><div id="adminVideos"></div><hr>
+<h3>📝 Add DPP / 📖 PYQ</h3><input id="docName" placeholder="Document name"><br><br>
+<input id="docUrl" placeholder="Document URL"><br><br>
+<button class="primary" onclick="addDoc('dpp')">➕ Add DPP</button>
+<button class="primary" onclick="addDoc('pyq')">➕ Add PYQ</button><div id="adminDocs"></div><hr>
+<h3>➕ Add Chapter</h3><input id="newChapter" placeholder="New chapter name"><br><br>
+<button class="primary" onclick="addChapter()">Add Chapter</button>
+<hr>
+<h3>🔗 Telegram Backend</h3>
+<input id="telegramBackendUrl" placeholder="https://your-backend.example.com"><br><br>
+<button class="primary" onclick="saveTelegramBackend()">Save Backend URL</button>
+<p style="font-size:12px;color:#64748b">Private Telegram videos need a backend with access to the Telegram channel.</p>
+</div></div>
+<script>
+const BASE_DATA={
+"ધોરણ 11":{
+"ભૌતિકશાસ્ત્ર":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9","પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12","પ્રકરણ 13","પ્રકરણ 14"],
+"રસાયણશાસ્ત્ર":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9","પ્રકરણ 10"],
+"જીવવિજ્ઞાન":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9","પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12","પ્રકરણ 13"]},
+"ધોરણ 12":{
+"ભૌતિકશાસ્ત્ર":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9","પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12","પ્રકરણ 13","પ્રકરણ 14"],
+"રસાયણશાસ્ત્ર":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9"],
+"જીવવિજ્ઞાન":["પ્રકરણ 1","પ્રકરણ 2","પ્રકરણ 3","પ્રકરણ 4","પ્રકરણ 5","પ્રકરણ 6","પ્રકરણ 7","પ્રકરણ 8","પ્રકરણ 9","પ્રકરણ 10","પ્રકરણ 11","પ્રકરણ 12","પ્રકરણ 13","પ્રકરણ 14","પ્રકરણ 15","પ્રકરણ 16","પ્રકરણ 17","પ્રકરણ 18","પ્રકરણ 19"]}};
+const STORE="pcb_study_kit_advanced_v3";let saved;try{saved=JSON.parse(localStorage.getItem(STORE)||"null")}catch(e){saved=null}
+if(!saved){saved={data:BASE_DATA,resources:{}};localStorage.setItem(STORE,JSON.stringify(saved))}
+const DATA=saved.data||BASE_DATA,resources=saved.resources||{};let current={std:"",sub:"",ch:"",folder:""};
+const $=id=>document.getElementById(id);
+function key(s,u,c){return `${s}|${u}|${c}`}
+function persist(){localStorage.setItem(STORE,JSON.stringify({data:DATA,resources:resources}))}
+function res(s,u,c){const k=key(s,u,c);if(!resources[k])resources[k]={videos:[],dpp:[],pyq:[],mcqs:[]};return resources[k]}
+function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]))}
+function validUrl(v){try{const u=new URL(String(v).trim());return u.protocol==="http:"||u.protocol==="https:"}catch(e){return false}}
+function youtubeId(url){try{const u=new URL(url),h=u.hostname.replace(/^www\./,"").toLowerCase();if(h==="youtu.be")return u.pathname.split("/").filter(Boolean)[0]||"";if(h==="youtube.com"||h.endsWith(".youtube.com")||h==="youtube-nocookie.com"||h.endsWith(".youtube-nocookie.com")){const v=u.searchParams.get("v");if(v)return v;const p=u.pathname.split("/").filter(Boolean),i=p.findIndex(x=>["embed","shorts","live","v"].includes(x));if(i>=0)return p[i+1]||""}}catch(e){}return ""}
+function telegramUrl(url){try{const h=new URL(url).hostname.replace(/^www\./,"").toLowerCase();return h==="t.me"||h==="telegram.me"||h==="telegram.dog"}catch(e){return false}}
+function telegramPostPath(url){try{const u=new URL(url),h=u.hostname.replace(/^www\./,"").toLowerCase();if(!["t.me","telegram.me","telegram.dog"].includes(h))return "";const p=u.pathname.split("/").filter(Boolean);if(p[0]==="s"&&p.length>=3&&p[1]!=="c")return `${p[1]}/${p[2]}`;if(p.length>=2&&p[0]!=="c")return `${p[0]}/${p[1]}`;return ""}catch(e){return ""}}
+function directVideo(url){try{return /\.(mp4|webm|ogg|m4v)(\?.*)?$/i.test(new URL(url).href)}catch(e){return false}}
+function youtubeEmbed(url){const id=youtubeId(url);if(!id)return "";const q=new URLSearchParams({autoplay:"0",playsinline:"1",rel:"0",modestbranding:"1",enablejsapi:"1"});if(location.origin&&location.origin!=="null")q.set("origin",location.origin);return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${q}`}
+function init(){fillStandards();$("standard").onchange=fillSubjects;$("subject").onchange=renderChapters;$("search").oninput=renderChapters;fillAdmin();renderChapters()}
+function fillStandards(){$("standard").innerHTML="";Object.keys(DATA).forEach(x=>$("standard").add(new Option(x,x)));fillSubjects()}
+function fillSubjects(){const s=$("standard").value;$("subject").innerHTML="";Object.keys(DATA[s]||{}).forEach(x=>$("subject").add(new Option(x,x)));renderChapters()}
+function renderChapters(){const s=$("standard").value,u=$("subject").value,q=$("search").value.trim().toLowerCase(),arr=(DATA[s]||{})[u]||[],list=$("chapterList");list.innerHTML="";arr.filter(x=>x.toLowerCase().includes(q)).forEach(ch=>{const r=res(s,u,ch),row=document.createElement("div");row.className="card chapter-row";row.innerHTML=`<div><div class="chapter-name">${esc(ch)}</div><div class="chapter-meta">🎥 ${r.videos.length} videos · 📝 ${r.dpp.length} DPP · ❓ ${r.mcqs.length} MCQs · 📖 ${r.pyq.length} PYQs</div></div><button class="open-btn">Open Chapter →</button>`;row.querySelector("button").onclick=()=>openChapter(s,u,ch);list.appendChild(row)});if(!list.children.length)list.innerHTML='<div class="card empty">No chapter found.</div>'}
+function openChapter(s,u,ch){current={std:s,sub:u,ch:ch,folder:""};$("homeView").classList.add("hidden");$("folderView").classList.add("hidden");$("chapterView").classList.remove("hidden");$("chapterCrumb").textContent=`${u} • ${ch}`;const r=res(s,u,ch);$("videoCount").textContent=`${r.videos.length} videos`;$("dppCount").textContent=`${r.dpp.length} DPP`;$("mcqCount").textContent=`${r.mcqs.length} MCQs`;$("pyqCount").textContent=`${r.pyq.length} PYQs`;$("videoCount2").textContent=`${r.videos.length} video${r.videos.length===1?"":"s"} inside this chapter`;scrollTo(0,0)}
+function goHome(){$("chapterView").classList.add("hidden");$("folderView").classList.add("hidden");$("homeView").classList.remove("hidden");renderChapters();scrollTo(0,0)}
+function goChapter(){$("folderView").classList.add("hidden");$("chapterView").classList.remove("hidden");scrollTo(0,0)}
+function openFolder(folder){current.folder=folder;$("chapterView").classList.add("hidden");$("folderView").classList.remove("hidden");const r=res(current.std,current.sub,current.ch),names={video:"🎥 Videos",dpp:"📝 DPP",mcq:"❓ MCQs",pyq:"📖 PYQs"};$("resourceTitle").textContent=names[folder];const arr=folder==="video"?r.videos:folder==="dpp"?r.dpp:folder==="pyq"?r.pyq:r.mcqs;$("resourceCount").textContent=`${arr.length} item${arr.length===1?"":"s"}`;renderFolder(arr,folder);scrollTo(0,0)}
+function renderFolder(arr,folder){const list=$("resourceList");list.innerHTML="";if(!arr.length){list.innerHTML='<div class="card empty">This folder is empty. Add resources from Admin.</div>';return}
+if(folder==="video"){arr.forEach((v,i)=>{const card=document.createElement("article");card.className="video-card";const id=youtubeId(v.url),thumb=id?`https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`:"";card.innerHTML=`<div class="video-thumb" id="video-area-${i}">${thumb?`<img src="${thumb}" alt="${esc(v.name)}">`:""}<span class="play-overlay">▶</span></div><div class="video-head"><div class="video-name">${esc(v.name)}</div><div class="video-url">${esc(v.url)}</div><button class="play-here">▶ Play video here</button></div>`;const open=()=>playInline(i,v);card.querySelector(".play-here").onclick=open;card.querySelector(".video-thumb").onclick=open;list.appendChild(card)});return}
+if(folder==="dpp"||folder==="pyq"){arr.forEach(x=>{const card=document.createElement("article");card.className="doc-card";card.innerHTML=`<b>${esc(x.name)}</b><br><br><button class="primary">📄 Open Document</button>`;card.querySelector("button").onclick=()=>{if(validUrl(x.url))window.open(x.url,"_blank","noopener,noreferrer");else alert("Invalid URL")};list.appendChild(card)});return}
+arr.forEach((x,i)=>{const card=document.createElement("article");card.className="mcq-card";const options=x.options||[];card.innerHTML=`<b>${i+1}. ${esc(x.q)}</b><div style="margin-top:10px">${options.map((o,j)=>`<label style="display:block;padding:7px"><input type="radio" name="mcq-${i}" value="${j}"> ${esc(o)}</label>`).join("")}</div><button class="primary">Check Answer</button><span id="answer-${i}" style="margin-left:8px"></span>`;card.querySelector("button").onclick=()=>{const selected=document.querySelector(`input[name="mcq-${i}"]:checked`);$("answer-"+i).textContent=!selected?"Select an option.":Number(selected.value)===Number(x.answer)?"✅ Correct":"❌ Incorrect"};list.appendChild(card)})}
+function playInline(i,v){document.querySelectorAll(".video-thumb").forEach(x=>x.dataset.playing="0");const area=$("video-area-"+i),url=String(v.url||"").trim();if(!validUrl(url)){area.innerHTML='<div class="player-note">Invalid video URL.</div>';return}const id=youtubeId(url);if(id){area.innerHTML=`<iframe src="${youtubeEmbed(url)}" title="${esc(v.name)}" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;area.dataset.playing="1";return}if(directVideo(url)){area.innerHTML=`<video controls autoplay playsinline preload="metadata" src="${esc(url)}"></video>`;area.dataset.playing="1";return}if(telegramUrl(url)){area.innerHTML='<div class="player-note">Telegram video: <a href="'+esc(url)+'" target="_blank" rel="noopener">Open in Telegram</a></div>';return}area.innerHTML='<div class="player-note">This video URL cannot be played inside the page.</div>'}
+function openAdmin(){
+$("adminModal").classList.add("show");fillAdmin();
+$("telegramBackendUrl").value=localStorage.getItem("telegram_backend_url")||window.TELEGRAM_BACKEND_URL||"";
+}
+function closeAdmin(){$("adminModal").classList.remove("show")}
+
+const adminFab=$("admin-fab");
+let fabDragging=false,fabMoved=false,fabStartX=0,fabStartY=0,fabStartLeft=0,fabStartTop=0;
+
+function restoreFabPosition(){
+  try{
+    const p=JSON.parse(localStorage.getItem("pcb_admin_fab_position")||"null");
+    if(p&&Number.isFinite(p.left)&&Number.isFinite(p.top)){
+      adminFab.style.left=Math.max(0,Math.min(p.left,window.innerWidth-adminFab.offsetWidth))+"px";
+      adminFab.style.top=Math.max(0,Math.min(p.top,window.innerHeight-adminFab.offsetHeight))+"px";
+      adminFab.style.right="auto";
+      adminFab.style.bottom="auto";
+    }
+  }catch(e){}
+}
+
+function saveFabPosition(){
+  try{
+    localStorage.setItem("pcb_admin_fab_position",JSON.stringify({
+      left:parseFloat(adminFab.style.left),
+      top:parseFloat(adminFab.style.top)
+    }));
+  }catch(e){}
+}
+
+adminFab.addEventListener("pointerdown",e=>{
+  fabDragging=true;
+  fabMoved=false;
+  fabStartX=e.clientX;
+  fabStartY=e.clientY;
+  const r=adminFab.getBoundingClientRect();
+  fabStartLeft=r.left;
+  fabStartTop=r.top;
+  adminFab.classList.add("dragging");
+  adminFab.setPointerCapture(e.pointerId);
+});
+
+adminFab.addEventListener("pointermove",e=>{
+  if(!fabDragging)return;
+  const dx=e.clientX-fabStartX,dy=e.clientY-fabStartY;
+  if(Math.abs(dx)>5||Math.abs(dy)>5)fabMoved=true;
+  if(!fabMoved)return;
+  const left=Math.max(0,Math.min(fabStartLeft+dx,window.innerWidth-adminFab.offsetWidth));
+  const top=Math.max(0,Math.min(fabStartTop+dy,window.innerHeight-adminFab.offsetHeight));
+  adminFab.style.left=left+"px";
+  adminFab.style.top=top+"px";
+  adminFab.style.right="auto";
+  adminFab.style.bottom="auto";
+});
+
+adminFab.addEventListener("pointerup",e=>{
+  if(!fabDragging)return;
+  fabDragging=false;
+  adminFab.classList.remove("dragging");
+  if(fabMoved){
+    saveFabPosition();
+  }else{
+    openAdmin();
+  }
+  try{adminFab.releasePointerCapture(e.pointerId)}catch(err){}
+});
+
+adminFab.addEventListener("pointercancel",()=>{
+  fabDragging=false;
+  adminFab.classList.remove("dragging");
+});
+
+window.addEventListener("resize",()=>{
+  if(!adminFab.style.left)return;
+  const r=adminFab.getBoundingClientRect();
+  const left=Math.max(0,Math.min(r.left,window.innerWidth-adminFab.offsetWidth));
+  const top=Math.max(0,Math.min(r.top,window.innerHeight-adminFab.offsetHeight));
+  adminFab.style.left=left+"px";
+  adminFab.style.top=top+"px";
+  saveFabPosition();
+});
+
+$("adminModal").addEventListener("click",e=>{if(e.target===$("adminModal"))closeAdmin()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAdmin()});
+init();
+restoreFabPosition();
+</script>
+</body>
+</html>
