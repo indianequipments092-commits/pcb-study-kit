@@ -1,0 +1,47 @@
+name: Integrate Stage 2 Auth
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject auth script into index.html
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          if not p.exists():
+              raise SystemExit('index.html not found')
+          s = p.read_text(encoding='utf-8')
+          tag = '<script src="stage2-auth.js"></script>'
+          if tag not in s:
+              marker = '</body>'
+              if marker not in s:
+                  raise SystemExit('No </body> marker found')
+              s = s.replace(marker, tag + '\n' + marker, 1)
+              p.write_text(s, encoding='utf-8')
+              print('Stage 2 auth script injected.')
+          else:
+              print('Stage 2 auth script already present.')
+
+      - name: Commit integration
+        shell: bash
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No integration change needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Integrate Stage 2 authentication into main app"
+          git push
