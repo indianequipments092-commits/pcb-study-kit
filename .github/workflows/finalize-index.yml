@@ -1,0 +1,52 @@
+name: Finalize Single Index
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Repair index and inline Stage 2 auth
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          auth = subprocess.check_output(['git','show','49816d724c808fa2b2ff0e4807600fded7f9faf9'], text=True, encoding='utf-8')
+          s = s.replace('<script src="stage2-auth.js"></script>', '')
+          start = s.find('<script id="stage2-auth-js">')
+          if start >= 0:
+              end = s.find('</script>', start)
+              if end < 0: raise SystemExit('Broken Stage 2 block')
+              block_start = s.rfind('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>', 0, start)
+              if block_start < 0: block_start = start
+              s = s[:block_start] + s[end+len('</script>'):]
+          pos = s.rfind('</body>')
+          if pos < 0: raise SystemExit('No final body marker')
+          injection = '\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script id="stage2-auth-js">\n' + auth + '\n</script>\n'
+          s = s[:pos] + injection + s[pos:]
+          p.write_text(s, encoding='utf-8')
+          if s.count('stage2-auth-js') != 1: raise SystemExit('Bad auth tag count')
+          if s.count('stage2-auth.js') != 0: raise SystemExit('External auth reference remains')
+          if s.count('</script>') < 3: raise SystemExit('Missing script tags')
+      - name: Remove all non-index files
+        shell: bash
+        run: |
+          rm -f stage2-auth.js _stage2_fix_trigger.txt _stage2_fix_trigger_3.txt
+          rm -f _tmp_index_1.b64 _tmp_index_2.b64 _tmp_index_3.b64 _tmp_index_4.b64 _tmp_index_5.b64
+          rm -f .github/workflows/finalize-index.yml
+      - name: Commit final single-file site
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize PCB Study Kit as single index.html [skip ci]"
+          git push
