@@ -33,6 +33,11 @@ jobs:
           else:
               print('Stage 2 auth script already present.')
 
+      - name: Verify integration
+        shell: bash
+        run: |
+          grep -Fq '<script src="stage2-auth.js"></script>' index.html
+
       - name: Commit integration
         shell: bash
         run: |
