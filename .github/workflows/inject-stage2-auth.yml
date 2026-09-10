@@ -1,4 +1,4 @@
-name: Integrate Stage 2 Auth
+name: Repair Stage 2 Auth Integration
 
 on:
   push:
@@ -14,40 +14,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject auth script into index.html
+      - name: Repair script placement
         shell: python
         run: |
           from pathlib import Path
           p = Path('index.html')
-          if not p.exists():
-              raise SystemExit('index.html not found')
           s = p.read_text(encoding='utf-8')
           tag = '<script src="stage2-auth.js"></script>'
-          if tag not in s:
-              marker = '</body>'
-              if marker not in s:
-                  raise SystemExit('No </body> marker found')
-              s = s.replace(marker, tag + '\n' + marker, 1)
-              p.write_text(s, encoding='utf-8')
-              print('Stage 2 auth script injected.')
-          else:
-              print('Stage 2 auth script already present.')
 
-      - name: Verify integration
+          # The PDF exporter contains literal HTML inside a JavaScript string.
+          # Remove every old auth tag first so none can leave a stray </script>
+          # inside the main application script.
+          s = s.replace(tag, '')
+
+          body = '</body>'
+          if body not in s:
+              raise SystemExit('No </body> marker found')
+
+          # Inject only at the LAST real </body>, never the PDF template's one.
+          before, after = s.rsplit(body, 1)
+          s = before + tag + '\n' + body + after
+          p.write_text(s, encoding='utf-8')
+
+          if s.count(tag) != 1:
+              raise SystemExit('Expected exactly one auth tag')
+          tag_pos = s.find(tag)
+          final_main_close = s.rfind('</script>')
+          if tag_pos < final_main_close:
+              raise SystemExit('Auth tag is still inside JavaScript')
+          print('Auth tag repaired at final document body.')
+
+      - name: Verify
+        shell: python
+        run: |
+          from pathlib import Path
+          s = Path('index.html').read_text(encoding='utf-8')
+          tag = '<script src="stage2-auth.js"></script>'
+          if s.count(tag) != 1:
+              raise SystemExit('Auth tag count is not 1')
+          if s.find(tag) < s.rfind('</script>'):
+              raise SystemExit('Auth tag placement is invalid')
+          if not Path('stage2-auth.js').read_text(encoding='utf-8').strip():
+              raise SystemExit('stage2-auth.js is empty')
+          print('Stage 2 integration verification passed.')
+
+      - name: Cleanup temporary files
+        shell: bash
+        run: rm -f _diagnostic.txt _diagnostic2.txt _diagnostic3.txt _diagnostic4.txt _stage2_fix_trigger.txt
+
+      - name: Commit repair
         shell: bash
         run: |
-          grep -Fq '<script src="stage2-auth.js"></script>' index.html
-          test -s stage2-auth.js
-
-      - name: Commit integration
-        shell: bash
-        run: |
-          if git diff --quiet -- index.html; then
-            echo "No integration change needed."
+          if git diff --quiet -- index.html _diagnostic.txt _diagnostic2.txt _diagnostic3.txt _diagnostic4.txt _stage2_fix_trigger.txt; then
+            echo "No repair needed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git commit -m "Integrate Stage 2 authentication into main app"
+          git add index.html _diagnostic.txt _diagnostic2.txt _diagnostic3.txt _diagnostic4.txt _stage2_fix_trigger.txt
+          git commit -m "Repair Stage 2 script placement"
           git push
