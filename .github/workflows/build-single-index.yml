@@ -1,0 +1,44 @@
+name: Build Single Index
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Rebuild index.html from temporary compressed parts
+        shell: python
+        run: |
+          from pathlib import Path
+          import base64, gzip
+          parts = sorted(Path('.').glob('_tmp_index_*.b64'))
+          if len(parts) != 5:
+              raise SystemExit(f'Expected 5 temporary parts, found {len(parts)}')
+          b64 = ''.join(p.read_text(encoding='utf-8').strip() for p in parts)
+          data = gzip.decompress(base64.b64decode(b64))
+          Path('index.html').write_bytes(data)
+          print(f'index.html rebuilt: {len(data)} bytes')
+          text = data.decode('utf-8')
+          if 'stage2-auth-js' not in text:
+              raise SystemExit('Stage 2 auth code missing from index.html')
+          if "printScript+'\\n<script src=\"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2\"></script>" in text:
+              raise SystemExit('Broken auth injection pattern still present')
+          if text.count('</script>') < 3:
+              raise SystemExit('Expected app + Supabase + auth script tags')
+      - name: Remove temporary build files and workflow
+        shell: bash
+        run: |
+          rm -f _tmp_index_1.b64 _tmp_index_2.b64 _tmp_index_3.b64 _tmp_index_4.b64 _tmp_index_5.b64
+          rm -f .github/workflows/build-single-index.yml
+      - name: Commit final single-file site
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize PCB Study Kit as single index.html [skip ci]"
+          git push
