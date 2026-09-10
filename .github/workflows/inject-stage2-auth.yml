@@ -22,16 +22,16 @@ jobs:
           s = p.read_text(encoding='utf-8')
           tag = '<script src="stage2-auth.js"></script>'
 
-          # The PDF exporter contains literal HTML inside a JavaScript string.
-          # Remove every old auth tag first so none can leave a stray </script>
-          # inside the main application script.
+          # Remove every old auth tag first. The PDF exporter contains HTML
+          # inside a JavaScript string, so a literal </script> there breaks
+          # the browser's parsing of the main application script.
           s = s.replace(tag, '')
 
           body = '</body>'
           if body not in s:
               raise SystemExit('No </body> marker found')
 
-          # Inject only at the LAST real </body>, never the PDF template's one.
+          # Only the final document body is the real HTML body marker.
           before, after = s.rsplit(body, 1)
           s = before + tag + '\n' + body + after
           p.write_text(s, encoding='utf-8')
@@ -39,10 +39,10 @@ jobs:
           if s.count(tag) != 1:
               raise SystemExit('Expected exactly one auth tag')
           tag_pos = s.find(tag)
-          final_main_close = s.rfind('</script>')
-          if tag_pos < final_main_close:
-              raise SystemExit('Auth tag is still inside JavaScript')
-          print('Auth tag repaired at final document body.')
+          main_close_before_tag = s.rfind('</script>', 0, tag_pos)
+          if main_close_before_tag < 0:
+              raise SystemExit('Main application script closing tag not found')
+          print('Auth tag repaired after the main application script.')
 
       - name: Verify
         shell: python
@@ -52,7 +52,9 @@ jobs:
           tag = '<script src="stage2-auth.js"></script>'
           if s.count(tag) != 1:
               raise SystemExit('Auth tag count is not 1')
-          if s.find(tag) < s.rfind('</script>'):
+          tag_pos = s.find(tag)
+          main_close_before_tag = s.rfind('</script>', 0, tag_pos)
+          if main_close_before_tag < 0 or tag_pos <= main_close_before_tag:
               raise SystemExit('Auth tag placement is invalid')
           if not Path('stage2-auth.js').read_text(encoding='utf-8').strip():
               raise SystemExit('stage2-auth.js is empty')
