@@ -1,0 +1,163 @@
+name: Fix post-login navigation
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<!-- PCB_POST_LOGIN_FIX_V4 -->'
+          if marker not in s:
+              s=s.replace('<script src="./stage2-auth.js"></script>','',1)
+              patch=r'''<!-- PCB_POST_LOGIN_FIX_V4 -->
+          <style>
+          #accountBar{display:none;align-items:center;gap:8px;position:fixed;top:14px;right:16px;z-index:1200;padding:7px 8px 7px 11px;border:1px solid var(--line);border-radius:18px;background:rgba(10,15,30,.78);backdrop-filter:blur(22px);box-shadow:0 14px 40px rgba(0,0,0,.25)}
+          body.light-mode #accountBar{background:rgba(255,255,255,.86)}
+          #accountBar.pcb-visible{display:flex}
+          #accountChip{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:850;color:var(--text)}
+          #accountLogout{padding:9px 12px;border-radius:12px;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.22);color:#fecdd3;font-size:11px}
+          #pcbMenuBtn{width:40px;height:40px;padding:0;border-radius:13px;background:rgba(148,163,184,.10);border:1px solid var(--line);color:var(--text);font-size:22px;line-height:1}
+          #pcbMenuBtn:hover{border-color:rgba(124,92,255,.45);box-shadow:0 10px 28px rgba(124,92,255,.14)}
+          #pcbMenuPanel{position:fixed;top:64px;right:16px;width:min(285px,calc(100vw - 32px));z-index:1300;padding:8px;border:1px solid var(--line);border-radius:20px;background:var(--card2);box-shadow:0 25px 70px rgba(0,0,0,.42);backdrop-filter:blur(24px);display:none}
+          #pcbMenuPanel.show{display:block;animation:pcbMenuIn .16s ease-out}
+          @keyframes pcbMenuIn{from{opacity:0;transform:translateY(-7px) scale(.98)}to{opacity:1;transform:none}}
+          .pcb-menu-title{padding:10px 12px 7px;font-size:10px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+          .pcb-menu-item{width:100%;display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:transparent;color:var(--text);text-align:left;border:1px solid transparent;font-size:12px;font-weight:850}
+          .pcb-menu-item:hover{background:rgba(124,92,255,.08);border-color:rgba(124,92,255,.16);transform:none}
+          .pcb-menu-icon{width:31px;height:31px;display:grid;place-items:center;border-radius:10px;background:rgba(124,92,255,.10);font-size:16px;flex:none}
+          #pcbInfoModal{position:fixed;inset:0;z-index:2200;display:none;align-items:flex-end;justify-content:center;padding:10px;background:rgba(2,6,23,.78);backdrop-filter:blur(10px)}
+          #pcbInfoModal.show{display:flex}
+          .pcb-info-sheet{width:min(620px,100%);max-height:90vh;overflow:auto;border:1px solid var(--line);border-radius:27px;background:var(--card2);color:var(--text);box-shadow:0 35px 100px rgba(0,0,0,.55);padding:20px}
+          .pcb-info-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+          .pcb-info-head h3{margin:2px 0 3px;font-size:21px;letter-spacing:-.5px}
+          .pcb-info-head p{margin:0;color:var(--muted);font-size:11px}
+          .pcb-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+          .pcb-detail{padding:13px;border:1px solid var(--line);border-radius:15px;background:rgba(148,163,184,.045)}
+          .pcb-detail span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+          .pcb-detail b{display:block;font-size:12px;word-break:break-word}
+          @media(max-width:640px){#accountBar{top:10px;right:10px}#accountChip{max-width:120px}.pcb-detail-grid{grid-template-columns:1fr}.brand h1{padding-right:150px}}
+          </style>
+          <div id="pcbMenuPanel" aria-hidden="true">
+            <div class="pcb-menu-title">PCB Study Kit</div>
+            <button class="pcb-menu-item" id="pcbMenuHome"><span class="pcb-menu-icon">⌂</span><span>Home page</span></button>
+            <button class="pcb-menu-item" id="pcbMenuPersonal"><span class="pcb-menu-icon">👤</span><span>Personal Detail</span></button>
+            <button class="pcb-menu-item" id="pcbMenuAbout"><span class="pcb-menu-icon">ⓘ</span><span>About</span></button>
+            <button class="pcb-menu-item" id="pcbMenuSettings"><span class="pcb-menu-icon">⚙</span><span>Setting</span></button>
+            <button class="pcb-menu-item" id="pcbMenuLogout"><span class="pcb-menu-icon">↪</span><span>Logout</span></button>
+          </div>
+          <div id="pcbInfoModal" aria-hidden="true">
+            <div class="pcb-info-sheet">
+              <div class="pcb-info-head"><div><h3 id="pcbInfoTitle">Personal Detail</h3><p id="pcbInfoSub">Your account information</p></div><button class="ghost" id="pcbInfoClose">✕</button></div>
+              <div id="pcbInfoBody"></div>
+            </div>
+          </div>
+          <script>
+          (function(){
+            const PCB_URL='https://xmubirikizzdsikkfnej.supabase.co';
+            const PCB_KEY='sb_publishable_K8jIPdbFDB8nWkwSABqv9g_qM5_cS4d';
+            let pcbClient=null, pcbProfile=null, pcbReady=false;
+            const $=id=>document.getElementById(id);
+            function ensureAccountUI(){
+              let bar=$('accountBar');
+              if(!bar){
+                bar=document.createElement('div'); bar.id='accountBar'; bar.className='account-bar';
+                bar.innerHTML='<span id="accountChip" class="account-chip"></span><button id="accountLogout" class="account-logout">Logout</button>';
+                document.body.appendChild(bar);
+              }
+              let btn=$('pcbMenuBtn');
+              if(!btn){btn=document.createElement('button');btn.id='pcbMenuBtn';btn.setAttribute('aria-label','Menu');btn.textContent='⋮';bar.appendChild(btn)}
+              return bar;
+            }
+            function setBar(show){
+              const bar=ensureAccountUI();
+              bar.classList.toggle('pcb-visible',!!show);
+              if($('accountChip')) $('accountChip').textContent=pcbProfile?(pcbProfile.full_name||pcbProfile.email||'Account'):'Account';
+            }
+            function hideAuth(){
+              ['authLoading','authGate'].forEach(id=>{const e=$(id);if(e)e.classList.add('hidden')});
+              document.body.classList.remove('auth-open');
+              setBar(true);
+              closeMenu();
+            }
+            function showAuth(){
+              const gate=$('authGate'); if(gate)gate.classList.remove('hidden');
+              const load=$('authLoading'); if(load)load.classList.add('hidden');
+              setBar(false); closeMenu(); closeInfo();
+            }
+            async function loadProfile(user){
+              if(!user){pcbProfile=null;return null}
+              const {data,error}=await pcbClient.from('profiles').select('id,full_name,email,mobile,role,student_id,status,email_verified,created_at').eq('id',user.id).maybeSingle();
+              if(error){console.warn('PCB profile load:',error.message);pcbProfile={id:user.id,full_name:user.user_metadata?.full_name||'',email:user.email||'',mobile:user.user_metadata?.mobile||'',role:'student',status:'active',student_id:null,email_verified:!!user.email_confirmed_at,created_at:user.created_at};return pcbProfile}
+              pcbProfile=data||{id:user.id,full_name:user.user_metadata?.full_name||'',email:user.email||'',mobile:user.user_metadata?.mobile||'',role:'student',status:'active',student_id:null,email_verified:!!user.email_confirmed_at,created_at:user.created_at};
+              return pcbProfile;
+            }
+            function profileAllowed(){return pcbProfile && (pcbProfile.role==='student'||pcbProfile.role==='main_admin') && pcbProfile.status==='active'}
+            async function syncSession(session){
+              if(session?.user){await loadProfile(session.user);if(profileAllowed())hideAuth();else{await pcbClient.auth.signOut();showAuth()}}
+              else{pcbProfile=null;showAuth()}
+            }
+            function closeMenu(){const p=$('pcbMenuPanel');if(p){p.classList.remove('show');p.setAttribute('aria-hidden','true')}}
+            function openInfo(title,sub,body){$('pcbInfoTitle').textContent=title;$('pcbInfoSub').textContent=sub||'';$('pcbInfoBody').innerHTML=body;$('pcbInfoModal').classList.add('show');$('pcbInfoModal').setAttribute('aria-hidden','false');closeMenu()}
+            function closeInfo(){const m=$('pcbInfoModal');if(m){m.classList.remove('show');m.setAttribute('aria-hidden','true')}}
+            function esc(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+            function personal(){
+              const p=pcbProfile||{};
+              const role=p.role==='main_admin'?'Main Admin':'Student';
+              openInfo('Personal Detail','Your account information','<div class="pcb-detail-grid">'+
+                '<div class="pcb-detail"><span>Full Name</span><b>'+esc(p.full_name)+'</b></div>'+
+                '<div class="pcb-detail"><span>Email</span><b>'+esc(p.email)+'</b></div>'+
+                '<div class="pcb-detail"><span>Mobile</span><b>'+esc(p.mobile)+'</b></div>'+
+                '<div class="pcb-detail"><span>Student ID</span><b>'+esc(p.student_id||'—')+'</b></div>'+\
+                '<div class="pcb-detail"><span>Role</span><b>'+esc(role)+'</b></div>'+\
+                '<div class="pcb-detail"><span>Status</span><b>'+esc(p.status)+'</b></div>'+\
+                '<div class="pcb-detail"><span>Email Verified</span><b>'+esc(p.email_verified?'Yes':'No')+'</b></div>'+\
+                '<div class="pcb-detail"><span>Created</span><b>'+esc(p.created_at?new Date(p.created_at).toLocaleDateString(): '—')+'</b></div>'+\
+                '</div>');
+            }
+            function about(){openInfo('About PCB Study Kit','Study • Practice • Progress','<div class="card" style="margin:0"><h3 style="margin:0 0 7px">PCB Study Kit</h3><p class="muted" style="margin:0">A focused study workspace for Biology, Chemistry and Physics with chapters, resources, practice and progress tools.</p></div>')}
+            function settings(){openInfo('Setting','Personalize your study workspace','<div class="card" style="margin:0"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><b>Appearance</b><div class="muted" style="margin-top:3px">Switch between light and dark mode.</div></div><button class="primary" id="pcbThemeBtn">Toggle Theme</button></div></div>');const b=$('pcbThemeBtn');if(b)b.onclick=()=>{if(typeof toggleTheme==='function')toggleTheme();else document.body.classList.toggle('light-mode')}}
+            async function logout(){closeMenu();try{await pcbClient.auth.signOut()}finally{pcbProfile=null;showAuth();window.scrollTo({top:0,behavior:'smooth'})}}
+            function bindMenu(){
+              ensureAccountUI();
+              $('pcbMenuBtn').onclick=e=>{e.stopPropagation();const p=$('pcbMenuPanel');p.classList.toggle('show');p.setAttribute('aria-hidden',p.classList.contains('show')?'false':'true')};
+              $('accountLogout').onclick=logout;
+              $('pcbMenuHome').onclick=()=>{closeMenu();window.scrollTo({top:0,behavior:'smooth'});if(typeof renderChapters==='function')setTimeout(()=>renderChapters(),60)};
+              $('pcbMenuPersonal').onclick=personal;$('pcbMenuAbout').onclick=about;$('pcbMenuSettings').onclick=settings;$('pcbMenuLogout').onclick=logout;
+              $('pcbInfoClose').onclick=closeInfo;$('pcbInfoModal').onclick=e=>{if(e.target===$('pcbInfoModal'))closeInfo()};
+              document.addEventListener('click',e=>{if(!$('pcbMenuPanel').contains(e.target)&&e.target!==$('pcbMenuBtn'))closeMenu()});
+              document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenu();closeInfo()}});
+            }
+            function loadSupabase(){
+              if(window.supabase?.createClient)return Promise.resolve();
+              return new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';sc.onload=resolve;sc.onerror=reject;document.head.appendChild(sc)})
+            }
+            async function start(){
+              try{await loadSupabase();pcbClient=window.supabase.createClient(PCB_URL,PCB_KEY);bindMenu();
+                pcbClient.auth.onAuthStateChange((event,session)=>{setTimeout(()=>syncSession(session),0)});
+                const {data}=await pcbClient.auth.getSession();await syncSession(data.session);pcbReady=true;
+              }catch(err){console.error('PCB auth navigation fix:',err);const l=$('authLoading');if(l)l.classList.add('hidden')}
+            }
+            window.PCBAuthFix={logout,personal,about,settings};
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+          })();
+          </script>
+          '''
+              s=s.replace('</body>',patch+'</body>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git rm -f .github/workflows/fix-post-login.yml || true
+          git commit -m "Fix post-login navigation, logout and account menu" || exit 0
+          git push
