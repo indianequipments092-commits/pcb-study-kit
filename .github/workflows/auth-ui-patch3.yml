@@ -1,0 +1,32 @@
+name: temporary-auth-ui-patch3
+on:
+  push:
+    paths:
+      - '.auth-ui-trigger-3'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add login stability and Personal Detail
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if 'id="pcb-personal-addon"' in s: raise SystemExit('already patched')
+          js='''<script id="pcb-personal-addon">(function(){const U="https://xmubirikizzdsikkfnej.supabase.co",K="sb_publishable_K8jIPdbFDB8nWkwSABqv9g_qM5_cS4d",c=window.supabase.createClient(U,K);let profile=null;async function gp(){const {data:{user}}=await c.auth.getUser();if(!user)return null;const {data}=await c.from("profiles").select("full_name,student_id,role,status,created_at").eq("id",user.id).maybeSingle();return data||null}function add(){let a=document.querySelector(".pcb-personal-addon");if(a)return a;a=document.createElement("div");a.className="pcb-personal-addon";a.innerHTML="<button>👤 Personal Detail</button><button>Logout</button>";document.body.appendChild(a);a.children[0].onclick=async()=>{profile=profile||await gp();if(!profile)return;alert("Full Name: "+(profile.full_name||"—")+"\\nStudent ID: "+(profile.student_id||"—")+"\\nRole: "+(profile.role||"—")+"\\nStatus: "+(profile.status||"—"))};a.children[1].onclick=()=>c.auth.signOut();return a}function fix(id,role){const f=document.getElementById(id);if(!f)return;f.addEventListener("submit",async e=>{e.preventDefault();e.stopImmediatePropagation();const email=f.querySelector("input[type=email]").value.trim().toLowerCase(),password=f.querySelector("input[type=password]").value,b=f.querySelector("button[type=submit]");b.disabled=true;const {data,error}=await c.auth.signInWithPassword({email,password});b.disabled=false;if(error){const x=document.getElementById("pcb-auth-error");if(x){x.textContent=error.message||"Login failed.";x.classList.add("show")}return}profile=await gp();if(!profile||profile.status!=="active"||profile.role!==role){await c.auth.signOut();return}const g=document.getElementById("pcb-stage2-auth");if(g)g.classList.remove("show");add()},true)}fix("pcb-login-form","student");fix("pcb-admin-form","main_admin");c.auth.onAuthStateChange(async(e)=>{if(e==="SIGNED_IN"){profile=await gp();if(profile){const g=document.getElementById("pcb-stage2-auth");if(g)g.classList.remove("show");add()}}if(e==="SIGNED_OUT"){profile=null;document.querySelector(".pcb-personal-addon")?.remove();document.getElementById("pcb-stage2-auth")?.classList.add("show")}});gp().then(p=>{if(p){profile=p;document.getElementById("pcb-stage2-auth")?.classList.remove("show");add()}})})();</script>'''
+          css='<style>.pcb-personal-addon{position:fixed;right:15px;top:74px;z-index:10001;display:flex;gap:7px}.pcb-personal-addon button{border:1px solid rgba(148,163,184,.18);border-radius:999px;padding:8px 11px;background:rgba(10,15,30,.94);color:#e2e8f0;font-size:10px;font-weight:900}.pcb-personal-addon button:first-child{background:rgba(124,92,255,.18);color:#ddd6fe}@media(max-width:560px){.pcb-personal-addon{top:auto;bottom:78px;right:12px;left:12px;justify-content:center}}</style>'
+          s=s.replace('</head>',css+'</head>').replace('</body>',js+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit and clean temporary files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git rm .auth-ui-trigger .auth-ui-trigger-2 .auth-ui-trigger-3 .github/workflows/auth-ui-fix.yml .github/workflows/auth-ui-patch2.yml .github/workflows/auth-ui-patch3.yml
+          git commit -m 'Fix login and add Personal Detail' || exit 0
+          git push
