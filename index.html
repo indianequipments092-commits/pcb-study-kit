@@ -287,114 +287,131 @@ function boot(){
   gate.id='pcb-stage2-auth';
   gate.innerHTML=`
     <div class="pcb-auth-box">
-      <div class="pcb-auth-brand"><div class="pcb-auth-logo">P</div><div><div class="pcb-auth-title">PCB Study Kit</div><div class="pcb-auth-sub">Secure Student & Admin Access</div></div></div>
-      <div class="pcb-auth-tabs"><button class="pcb-auth-tab active" data-auth-tab="student">Student</button><button class="pcb-auth-tab" data-auth-tab="admin">Admin</button></div>
+      <div class="pcb-auth-brand"><div class="pcb-auth-logo">P</div><div><div class="pcb-auth-title">PCB Study Kit</div><div class="pcb-auth-sub">Secure Student & Main Admin Access</div></div></div>
+      <div class="pcb-auth-tabs"><button class="pcb-auth-tab active" data-auth-tab="student">Student Login</button><button class="pcb-auth-tab" data-auth-tab="admin">Main Admin Login</button></div>
       <div id="pcb-auth-error" class="pcb-auth-msg error"></div><div id="pcb-auth-ok" class="pcb-auth-msg ok"></div>
       <section class="pcb-auth-panel active" id="pcb-auth-student">
         <form id="pcb-login-form">
           <label class="pcb-auth-label">Email</label><input class="pcb-auth-input" id="pcb-login-email" type="email" required autocomplete="email" placeholder="student@example.com">
-          <button class="pcb-auth-btn" type="submit">Send Login OTP</button>
+          <label class="pcb-auth-label">Password</label><input class="pcb-auth-input" id="pcb-login-password" type="password" required autocomplete="current-password" placeholder="Your password">
+          <button class="pcb-auth-btn" type="submit">Login</button>
         </form>
         <button class="pcb-auth-secondary" id="pcb-show-signup">Create Student Account</button>
-        <span class="pcb-auth-link" id="pcb-show-forgot">Forgot password?</span>
-      </section>
-      <section class="pcb-auth-panel" id="pcb-auth-otp">
-        <div class="pcb-auth-label">Enter 8-digit OTP</div>
-        <input class="pcb-auth-input" id="pcb-otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="12345678">
-        <button class="pcb-auth-btn" id="pcb-verify-otp" type="button">Verify & Login</button>
-        <button class="pcb-auth-secondary" id="pcb-resend-otp" type="button">Resend OTP</button>
-        <span class="pcb-auth-link" id="pcb-change-email">← Change Email</span>
       </section>
       <section class="pcb-auth-panel" id="pcb-auth-signup">
         <form id="pcb-signup-form">
           <label class="pcb-auth-label">Full Name</label><input class="pcb-auth-input" id="pcb-signup-name" required autocomplete="name" placeholder="Your full name">
-          <div class="pcb-auth-row"><div><label class="pcb-auth-label">Email</label><input class="pcb-auth-input" id="pcb-signup-email" type="email" required autocomplete="email" placeholder="student@example.com"></div><div><label class="pcb-auth-label">Mobile (optional)</label><input class="pcb-auth-input" id="pcb-signup-mobile" inputmode="tel" placeholder="Mobile number"></div></div>
+          <div class="pcb-auth-row"><div><label class="pcb-auth-label">Email</label><input class="pcb-auth-input" id="pcb-signup-email" type="email" required autocomplete="email" placeholder="student@example.com"></div><div><label class="pcb-auth-label">Mobile</label><input class="pcb-auth-input" id="pcb-signup-mobile" inputmode="tel" required placeholder="Mobile number"></div></div>
           <div class="pcb-auth-row"><div><label class="pcb-auth-label">Password</label><input class="pcb-auth-input" id="pcb-signup-password" type="password" minlength="8" required autocomplete="new-password" placeholder="Minimum 8 characters"></div><div><label class="pcb-auth-label">Confirm Password</label><input class="pcb-auth-input" id="pcb-signup-password2" type="password" minlength="8" required autocomplete="new-password" placeholder="Repeat password"></div></div>
           <button class="pcb-auth-btn" type="submit">Create Student Account</button>
         </form>
-        <span class="pcb-auth-link" id="pcb-back-login">← Back to Sign In</span>
-      </section>
-      <section class="pcb-auth-panel" id="pcb-auth-forgot">
-        <form id="pcb-forgot-form"><label class="pcb-auth-label">Account Email</label><input class="pcb-auth-input" id="pcb-forgot-email" type="email" required placeholder="student@example.com"><button class="pcb-auth-btn" type="submit">Send Reset Email</button></form>
-        <span class="pcb-auth-link" id="pcb-forgot-back">← Back to Sign In</span>
+        <span class="pcb-auth-link" id="pcb-back-login">← Back to Student Login</span>
       </section>
       <section class="pcb-auth-panel" id="pcb-auth-admin">
-        <form id="pcb-admin-form"><label class="pcb-auth-label">Admin Email</label><input class="pcb-auth-input" id="pcb-admin-email" type="email" required autocomplete="email" placeholder="admin@example.com"><label class="pcb-auth-label">Password</label><input class="pcb-auth-input" id="pcb-admin-password" type="password" required autocomplete="current-password" placeholder="••••••••"><button class="pcb-auth-btn" type="submit">Admin Sign In</button></form>
-        <div class="pcb-auth-note">Main Admin and Sub Admin accounts are created/managed securely by the backend. There is no public admin signup.</div>
+        <form id="pcb-admin-form"><label class="pcb-auth-label">Admin Email</label><input class="pcb-auth-input" id="pcb-admin-email" type="email" required autocomplete="email" placeholder="admin@example.com"><label class="pcb-auth-label">Password</label><input class="pcb-auth-input" id="pcb-admin-password" type="password" required autocomplete="current-password" placeholder="Your password"><button class="pcb-auth-btn" type="submit">Main Admin Login</button></form>
+        <div class="pcb-auth-note">Main Admin accounts are provisioned securely. There is no public admin registration.</div>
       </section>
-      <div class="pcb-auth-note">Your account data is stored securely in Supabase. Student IDs are generated automatically after registration.</div>
+      <div class="pcb-auth-note">Student IDs are generated automatically by the database after registration.</div>
     </div>`;
   document.body.appendChild(gate);
 
   const account=document.createElement('div');
-  account.id='pcb-stage2-account';
-  account.className='pcb-auth-account';
+  account.id='pcb-stage2-account';account.className='pcb-auth-account';
   account.innerHTML='<span id="pcb-account-text"></span><button class="pcb-auth-logout" id="pcb-account-logout">Logout</button>';
   document.body.appendChild(account);
 
   let client;
+  let entering=false;
   const showMsg=(text,ok=false)=>{const e=document.getElementById(ok?'pcb-auth-ok':'pcb-auth-error');const x=document.getElementById(ok?'pcb-auth-error':'pcb-auth-ok');x.classList.remove('show');e.textContent=text;e.classList.add('show');};
   const clearMsg=()=>{document.getElementById('pcb-auth-error').classList.remove('show');document.getElementById('pcb-auth-ok').classList.remove('show');};
-  const setPanel=(name)=>{document.querySelectorAll('.pcb-auth-panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pcb-auth-tab').forEach(x=>x.classList.remove('active'));const p=document.getElementById('pcb-auth-'+name);if(p)p.classList.add('active');const t=document.querySelector('[data-auth-tab="'+(name==='student'||name==='signup'||name==='forgot'?'student':'admin')+'"]');if(t)t.classList.add('active');clearMsg();};
-
+  const setPanel=(name)=>{document.querySelectorAll('.pcb-auth-panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pcb-auth-tab').forEach(x=>x.classList.remove('active'));const p=document.getElementById('pcb-auth-'+name);if(p)p.classList.add('active');const tab=name==='admin'?'admin':'student';const t=document.querySelector('[data-auth-tab="'+tab+'"]');if(t)t.classList.add('active');clearMsg();};
   document.querySelectorAll('[data-auth-tab]').forEach(b=>b.addEventListener('click',()=>setPanel(b.dataset.authTab)));
   document.getElementById('pcb-show-signup').onclick=()=>setPanel('signup');
-  document.getElementById('pcb-show-forgot').onclick=()=>setPanel('forgot');
   document.getElementById('pcb-back-login').onclick=()=>setPanel('student');
-  document.getElementById('pcb-forgot-back').onclick=()=>setPanel('student');
 
-  const start=async()=>{
-    if(!window.supabase){
-      const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      s.onload=()=>init();s.onerror=()=>showMsg('Supabase library load failed. Please try again.');document.head.appendChild(s);
-    }else init();
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const loadProfile=async(userId)=>{
+    for(let attempt=0;attempt<8;attempt++){
+      const r=await client.from('profiles').select('full_name,email,role,status,student_id').eq('id',userId).maybeSingle();
+      if(r.error && attempt===7) throw r.error;
+      if(r.data) return r.data;
+      await wait(250);
+    }
+    return null;
   };
+  const enter=async(session,requiredRole)=>{
+    if(!session||entering)return false;
+    entering=true;
+    try{
+      const profile=await loadProfile(session.user.id);
+      if(!profile){await client.auth.signOut();showMsg('Your account profile could not be loaded. Please try again.');return false;}
+      if(profile.status!=='active'){await client.auth.signOut();showMsg('This account is currently '+profile.status+'. Please contact the administrator.');return false;}
+      if(requiredRole && profile.role!==requiredRole){await client.auth.signOut();showMsg(requiredRole==='main_admin'?'This account is not a Main Admin account.':'This account is not a Student account.');return false;}
+      if(!['student','main_admin'].includes(profile.role)){await client.auth.signOut();showMsg('This account has an unsupported role.');return false;}
+      const label=profile.role==='student'?'STUDENT · '+(profile.student_id||'ID pending'):'MAIN ADMIN';
+      document.getElementById('pcb-account-text').textContent=(profile.full_name||session.user.email)+' · '+label;
+      account.classList.add('show');gate.classList.remove('show');clearMsg();return true;
+    }finally{entering=false;}
+  };
+
   const init=async()=>{
     try{
       client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
       const {data:{session}}=await client.auth.getSession();
-      if(session) await enter(session); else gate.classList.add('show');
-      client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session) enter(session);if(event==='SIGNED_OUT'){account.classList.remove('show');gate.classList.add('show');}});
+      if(session){const ok=await enter(session);if(!ok)gate.classList.add('show');}
+      else gate.classList.add('show');
+      client.auth.onAuthStateChange(async(event,nextSession)=>{
+        if(event==='SIGNED_OUT'){account.classList.remove('show');gate.classList.add('show');return;}
+        if(event==='SIGNED_IN'&&nextSession&&!entering) await enter(nextSession);
+      });
     }catch(e){gate.classList.add('show');showMsg(e.message||'Authentication could not start.');}
   };
-  let entering=false;
-  const enter=async(session)=>{
-    if(!session||entering)return;
-    entering=true;
-    try{
-      clearMsg();
-      let profile=null,error=null;
-      for(let attempt=0;attempt<6;attempt++){
-        const r=await client.from('profiles').select('full_name,email,role,status,student_id,sub_admin_id').eq('id',session.user.id).maybeSingle();
-        profile=r.data; error=r.error;
-        if(profile)break;
-        if(attempt<5)await new Promise(resolve=>setTimeout(resolve,350));
-      }
-      if(error||!profile){await client.auth.signOut();showMsg('Account profile is not ready yet. Please complete registration/verification and try again.');return;}
-      if(profile.status!=='active'){await client.auth.signOut();showMsg('This account is currently '+profile.status+'. Please contact the administrator.');return;}
-      const id=profile.role==='student'?profile.student_id:(profile.role==='sub_admin'?profile.sub_admin_id:'MAIN');
-      document.getElementById('pcb-account-text').textContent=(profile.full_name||session.user.email)+' · '+profile.role.replace('_',' ').toUpperCase()+' · '+id;
-      account.classList.add('show');gate.classList.remove('show');
-    }finally{entering=false;}
+
+  document.getElementById('pcb-login-form').onsubmit=async(e)=>{
+    e.preventDefault();clearMsg();
+    const email=document.getElementById('pcb-login-email').value.trim().toLowerCase();
+    const password=document.getElementById('pcb-login-password').value;
+    const btn=e.submitter;btn.disabled=true;
+    const {data,error}=await client.auth.signInWithPassword({email,password});
+    btn.disabled=false;
+    if(error){showMsg('Email or password is incorrect.');return;}
+    await enter(data.session,'student');
   };
 
-  let otpEmail='',otpPurpose='login';
-  const showOtpPanel=(email,purpose)=>{otpEmail=email;otpPurpose=purpose;document.getElementById('pcb-otp-code').value='';document.getElementById('pcb-verify-otp').textContent=purpose==='signup'?'Verify Account':'Verify & Login';setPanel('otp');};
-  const sendLoginOtp=async()=>{clearMsg();const email=document.getElementById('pcb-login-email').value.trim().toLowerCase();if(!email){showMsg('Enter your email address.');return;}const btn=document.getElementById('pcb-login-form').querySelector('button');btn.disabled=true;const {error}=await client.auth.signInWithOtp({email,options:{shouldCreateUser:false}});btn.disabled=false;if(error){showMsg(error.message);return;}showOtpPanel(email,'login');showMsg('OTP sent to your email. Check your inbox.',true);};
-  document.getElementById('pcb-login-form').onsubmit=async(e)=>{e.preventDefault();await sendLoginOtp();};
-  document.getElementById('pcb-verify-otp').onclick=async()=>{const code=document.getElementById('pcb-otp-code').value.trim();if(!/^[0-9]{8}$/.test(code)){showMsg('Enter the 8-digit OTP.');return;}const btn=document.getElementById('pcb-verify-otp');btn.disabled=true;clearMsg();const {data,error}=await client.auth.verifyOtp({email:otpEmail,token:code,type:'email'});btn.disabled=false;if(error){showMsg(error.message);return;}if(data.session)await enter(data.session);};
-  document.getElementById('pcb-resend-otp').onclick=async()=>{if(!otpEmail)return;const btn=document.getElementById('pcb-resend-otp');btn.disabled=true;const {error}=await client.auth.signInWithOtp({email:otpEmail,options:{shouldCreateUser:false}});btn.disabled=false;if(error){showMsg(error.message);return;}showMsg('A new OTP has been sent to your email.',true);};
-  document.getElementById('pcb-change-email').onclick=()=>setPanel(otpPurpose==='signup'?'signup':'student');
-  document.getElementById('pcb-signup-form').onsubmit=async(e)=>{e.preventDefault();clearMsg();const name=document.getElementById('pcb-signup-name').value.trim();const email=document.getElementById('pcb-signup-email').value.trim().toLowerCase();const mobile=document.getElementById('pcb-signup-mobile').value.trim();const pass=document.getElementById('pcb-signup-password').value;const pass2=document.getElementById('pcb-signup-password2').value;if(pass!==pass2){showMsg('Passwords do not match.');return;}const btn=e.submitter;btn.disabled=true;const {data,error}=await client.auth.signUp({email,password:pass,options:{data:{full_name:name,mobile}}});btn.disabled=false;if(error){showMsg(error.message);return;}if(data.session){await enter(data.session);}else{showOtpPanel(email,'signup');showMsg('Account created. Enter the OTP sent to your email.',true);}};
-  document.getElementById('pcb-forgot-form').onsubmit=async(e)=>{e.preventDefault();clearMsg();const email=document.getElementById('pcb-forgot-email').value.trim().toLowerCase();const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.href});if(error)showMsg(error.message);else showMsg('Password reset email sent. Check your inbox.',true);};
-  document.getElementById('pcb-admin-form').onsubmit=async(e)=>{e.preventDefault();clearMsg();const btn=e.submitter;btn.disabled=true;const {data,error}=await client.auth.signInWithPassword({email:document.getElementById('pcb-admin-email').value.trim().toLowerCase(),password:document.getElementById('pcb-admin-password').value});btn.disabled=false;if(error){showMsg(error.message);return;}const {data:p,error:pe}=await client.from('profiles').select('role,status').eq('id',data.user.id).single();if(pe||!p||!['main_admin','sub_admin'].includes(p.role)){await client.auth.signOut();showMsg('This account is not an administrator.');return;}if(p.status!=='active'){await client.auth.signOut();showMsg('Administrator account is not active.');}};
-  document.getElementById('pcb-account-logout').onclick=()=>client.auth.signOut();
-  start();
+  document.getElementById('pcb-signup-form').onsubmit=async(e)=>{
+    e.preventDefault();clearMsg();
+    const name=document.getElementById('pcb-signup-name').value.trim();
+    const email=document.getElementById('pcb-signup-email').value.trim().toLowerCase();
+    const mobile=document.getElementById('pcb-signup-mobile').value.trim();
+    const pass=document.getElementById('pcb-signup-password').value;
+    const pass2=document.getElementById('pcb-signup-password2').value;
+    if(pass!==pass2){showMsg('Passwords do not match.');return;}
+    if(pass.length<8){showMsg('Password must be at least 8 characters.');return;}
+    const btn=e.submitter;btn.disabled=true;
+    const {data,error}=await client.auth.signUp({email,password:pass,options:{data:{full_name:name,mobile}}});
+    btn.disabled=false;
+    if(error){showMsg(error.message||'Could not create the account.');return;}
+    if(data.session){await enter(data.session,'student');}
+    else {setPanel('student');document.getElementById('pcb-login-email').value=email;showMsg('Account created. Now log in with your email and password.',true);}
+  };
+
+  document.getElementById('pcb-admin-form').onsubmit=async(e)=>{
+    e.preventDefault();clearMsg();
+    const email=document.getElementById('pcb-admin-email').value.trim().toLowerCase();
+    const password=document.getElementById('pcb-admin-password').value;
+    const btn=e.submitter;btn.disabled=true;
+    const {data,error}=await client.auth.signInWithPassword({email,password});
+    btn.disabled=false;
+    if(error){showMsg('Email or password is incorrect.');return;}
+    await enter(data.session,'main_admin');
+  };
+
+  document.getElementById('pcb-account-logout').onclick=async()=>{await client.auth.signOut();};
+  init();
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
-
 </script>
 </body>
 </html>
