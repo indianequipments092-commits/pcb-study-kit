@@ -357,14 +357,25 @@ function boot(){
       client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session) enter(session);if(event==='SIGNED_OUT'){account.classList.remove('show');gate.classList.add('show');}});
     }catch(e){gate.classList.add('show');showMsg(e.message||'Authentication could not start.');}
   };
+  let entering=false;
   const enter=async(session)=>{
-    clearMsg();
-    const {data:profile,error}=await client.from('profiles').select('full_name,email,role,status,student_id,sub_admin_id').eq('id',session.user.id).single();
-    if(error||!profile){await client.auth.signOut();showMsg('Account profile is not ready yet. Please complete registration/verification and try again.');return;}
-    if(profile.status!=='active'){await client.auth.signOut();showMsg('This account is currently '+profile.status+'. Please contact the administrator.');return;}
-    const id=profile.role==='student'?profile.student_id:(profile.role==='sub_admin'?profile.sub_admin_id:'MAIN');
-    document.getElementById('pcb-account-text').textContent=(profile.full_name||session.user.email)+' · '+profile.role.replace('_',' ').toUpperCase()+' · '+id;
-    account.classList.add('show');gate.classList.remove('show');
+    if(!session||entering)return;
+    entering=true;
+    try{
+      clearMsg();
+      let profile=null,error=null;
+      for(let attempt=0;attempt<6;attempt++){
+        const r=await client.from('profiles').select('full_name,email,role,status,student_id,sub_admin_id').eq('id',session.user.id).maybeSingle();
+        profile=r.data; error=r.error;
+        if(profile)break;
+        if(attempt<5)await new Promise(resolve=>setTimeout(resolve,350));
+      }
+      if(error||!profile){await client.auth.signOut();showMsg('Account profile is not ready yet. Please complete registration/verification and try again.');return;}
+      if(profile.status!=='active'){await client.auth.signOut();showMsg('This account is currently '+profile.status+'. Please contact the administrator.');return;}
+      const id=profile.role==='student'?profile.student_id:(profile.role==='sub_admin'?profile.sub_admin_id:'MAIN');
+      document.getElementById('pcb-account-text').textContent=(profile.full_name||session.user.email)+' · '+profile.role.replace('_',' ').toUpperCase()+' · '+id;
+      account.classList.add('show');gate.classList.remove('show');
+    }finally{entering=false;}
   };
 
   let otpEmail='',otpPurpose='login';
