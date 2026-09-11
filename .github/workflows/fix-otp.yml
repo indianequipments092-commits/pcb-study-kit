@@ -1,0 +1,37 @@
+name: One-time OTP fix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch OTP length
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          b = p.read_bytes()
+          reps = [
+              (b'Enter 6-digit OTP', b'Enter 8-digit OTP'),
+              (b'maxlength="6" placeholder="123456"', b'maxlength="8" placeholder="12345678"'),
+              (b'/^[0-9]{6}$/.test(code)', b'/^[0-9]{8}$/.test(code)'),
+              (b'Enter the 6-digit OTP.', b'Enter the 8-digit OTP.'),
+          ]
+          for old, new in reps:
+              if old not in b:
+                  raise SystemExit(f'missing expected text: {old!r}')
+              b = b.replace(old, new)
+          p.write_bytes(b)
+          PY
+      - name: Commit patch and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/fix-otp.yml
+          git add index.html .github/workflows/fix-otp.yml
+          git commit -m "Fix email OTP length [skip ci]"
+          git push
